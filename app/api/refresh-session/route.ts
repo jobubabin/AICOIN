@@ -3,6 +3,7 @@ import { WORKFLOW_ID } from "@/lib/config";
 import {
   DEFAULT_CHATKIT_BASE,
   buildJsonResponse,
+  cancelChatkitSession,
   createChatkitSession,
   extractUpstreamError,
   getDefaultSessionRateLimits,
@@ -14,7 +15,7 @@ import {
 
 export const runtime = "edge";
 
-interface CreateSessionRequestBody {
+interface RefreshSessionRequestBody {
   workflow?: { id?: string | null } | null;
   scope?: { user_id?: string | null } | null;
   workflowId?: string | null;
@@ -29,6 +30,8 @@ interface CreateSessionRequestBody {
   rate_limits?: {
     max_requests_per_1_minute?: number | string | null;
   } | null;
+  current_client_secret?: string | null;
+  session_id?: string | null;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -52,18 +55,27 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const parsedBody = await safeParseJson<CreateSessionRequestBody>(request);
+    const parsedBody = await safeParseJson<RefreshSessionRequestBody>(request);
     const { userId, sessionCookie: resolvedSessionCookie } =
       await resolveUserId(request);
     sessionCookie = resolvedSessionCookie;
 
     const resolvedWorkflowId =
       parsedBody?.workflow?.id ?? parsedBody?.workflowId ?? WORKFLOW_ID;
+    const currentClientSecret =
+      typeof parsedBody?.current_client_secret === "string"
+        ? parsedBody.current_client_secret
+        : null;
+    const previousSessionId =
+      typeof parsedBody?.session_id === "string"
+        ? parsedBody.session_id
+        : null;
 
     if (process.env.NODE_ENV !== "production") {
-      console.info("[create-session] handling request", {
+      console.info("[refresh-session] handling request", {
         resolvedWorkflowId,
-        body: JSON.stringify(parsedBody),
+        hasCurrentSecret: Boolean(currentClientSecret),
+        previousSessionId,
       });
     }
 
@@ -105,7 +117,7 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     if (process.env.NODE_ENV !== "production") {
-      console.info("[create-session] upstream response", {
+      console.info("[refresh-session] upstream response", {
         status: upstreamResponse.status,
         statusText: upstreamResponse.statusText,
       });
@@ -113,7 +125,7 @@ export async function POST(request: Request): Promise<Response> {
 
     if (!upstreamResponse.ok) {
       const upstreamError = extractUpstreamError(upstreamJson);
-      console.error("OpenAI ChatKit session creation failed", {
+      console.error("OpenAI ChatKit session refresh failed", {
         status: upstreamResponse.status,
         statusText: upstreamResponse.statusText,
         body: upstreamJson,
@@ -122,7 +134,7 @@ export async function POST(request: Request): Promise<Response> {
         {
           error:
             upstreamError ??
-            `Failed to create session: ${upstreamResponse.statusText}`,
+            `Failed to refresh session: ${upstreamResponse.statusText}`,
           details: upstreamJson,
         },
         upstreamResponse.status,
@@ -137,12 +149,12 @@ export async function POST(request: Request): Promise<Response> {
         : null;
 
     if (!clientSecret) {
-      console.error("ChatKit session response missing client secret", {
+      console.error("ChatKit refresh response missing client secret", {
         body: upstreamJson,
       });
       return buildJsonResponse(
         {
-          error: "ChatKit session creation did not return a client secret",
+          error: "ChatKit session refresh did not return a client secret",
           details: upstreamJson,
         },
         502,
@@ -164,7 +176,31 @@ export async function POST(request: Request): Promise<Response> {
       expires_at: expiresAt,
       expires_after: upstreamJson?.expires_after ?? null,
       rate_limits: upstreamJson?.rate_limits ?? null,
+      previous_session_id: previousSessionId,
     };
+
+    const shouldCancelPreviousSession =
+      process.env.CHATKIT_CANCEL_PREVIOUS_SESSION_ON_REFRESH === "true";
+
+    if (
+      shouldCancelPreviousSession &&
+      previousSessionId &&
+      sessionId &&
+      previousSessionId !== sessionId
+    ) {
+      try {
+        await cancelChatkitSession({
+          openaiApiKey,
+          sessionId: previousSessionId,
+          apiBase,
+        });
+      } catch (cancelError) {
+        console.warn("Failed to cancel previous ChatKit session", {
+          error: cancelError,
+          previousSessionId,
+        });
+      }
+    }
 
     return buildJsonResponse(
       responsePayload,
@@ -173,7 +209,7 @@ export async function POST(request: Request): Promise<Response> {
       sessionCookie
     );
   } catch (error) {
-    console.error("Create session error", error);
+    console.error("Refresh session error", error);
     return buildJsonResponse(
       { error: "Unexpected error" },
       500,
