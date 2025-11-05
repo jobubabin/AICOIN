@@ -23,7 +23,6 @@ type ChatKitPanelProps = {
   theme: ColorScheme;
   onWidgetAction: (action: FactAction) => Promise<void>;
   onResponseEnd: () => void;
-  onThemeRequest: (scheme: ColorScheme) => void;
 };
 
 type ErrorState = {
@@ -47,7 +46,6 @@ export function ChatKitPanel({
   theme,
   onWidgetAction,
   onResponseEnd,
-  onThemeRequest,
 }: ChatKitPanelProps) {
   const processedFacts = useRef(new Set<string>());
   const [errors, setErrors] = useState<ErrorState>(() => createInitialErrors());
@@ -286,15 +284,11 @@ export function ChatKitPanel({
       params: Record<string, unknown>;
     }) => {
       if (invocation.name === "switch_theme") {
-        const requested = invocation.params.theme;
-        if (requested === "light" || requested === "dark") {
-          if (isDev) {
-            console.debug("[ChatKitPanel] switch_theme", requested);
-          }
-          onThemeRequest(requested);
-          return { success: true };
+        // Theme switching disabled - always stay in light mode
+        if (isDev) {
+          console.debug("[ChatKitPanel] switch_theme requested but disabled - staying in light mode");
         }
-        return { success: false };
+        return { success: true };
       }
 
       if (invocation.name === "record_fact") {
@@ -344,7 +338,15 @@ export function ChatKitPanel({
   }
 
   return (
-    <div className="relative pb-8 flex h-[90vh] w-full rounded-2xl flex-col overflow-hidden bg-white shadow-sm transition-colors dark:bg-slate-900">
+    <div className="relative pb-8 flex h-[90vh] w-full rounded-2xl flex-col overflow-hidden bg-white shadow-sm">
+      {/* Bloom Energy Header */}
+      <div className="flex items-center justify-center border-b border-gray-200 bg-white px-6 py-4">
+        <img
+          src="/docs/bloom_logo-full.svg"
+          alt="Bloom Energy"
+          className="h-8 w-auto"
+        />
+      </div>
       <ChatKit
         key={widgetInstanceKey}
         control={chatkit.control}

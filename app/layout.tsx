@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AgentKit demo",
-  description: "Demo of ChatKit with hosted workflow",
+  title: "Bloom Energy Assistant",
+  description: "Reliable, cost-effective power solutions at any scale. Speak with your Bloom Energy AI assistant.",
 };
 
 export default function RootLayout({
