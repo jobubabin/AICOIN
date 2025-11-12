@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import PromptSidebar from "./PromptSidebar";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
 import {
   STARTER_PROMPTS,
@@ -11,8 +12,8 @@ import {
   getThemeConfig,
 } from "@/lib/config";
 import { ErrorOverlay } from "./ErrorOverlay";
-import PromptSidebar from "./PromptSidebar";
 import type { ColorScheme } from "@/hooks/useColorScheme";
+import ToolTracePanel, { ToolTraceEvent } from "./ToolTracePanel";
 
 export type FactAction = {
   type: "save";
@@ -40,6 +41,11 @@ type WidgetAction = {
   payload?: Record<string, unknown>;
 };
 
+type ChatKitLogDetail = {
+  name: string;
+  data?: Record<string, unknown>;
+};
+
 const isBrowser = typeof window !== "undefined";
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -64,6 +70,19 @@ export function ChatKitPanel({
     () => (isBrowser && window.customElements?.get("openai-chatkit") ? "ready" : "pending")
   );
   const [widgetInstanceKey, setWidgetInstanceKey] = useState(0);
+  const [toolEvents, setToolEvents] = useState<ToolTraceEvent[]>([]);
+
+  const resetToolEvents = useCallback(() => {
+    setToolEvents([]);
+  }, []);
+
+  const appendToolEvent = useCallback((entry: ToolTraceEvent) => {
+    setToolEvents((current) => {
+      const next = [...current, entry];
+      const MAX_EVENTS = 60;
+      return next.length > MAX_EVENTS ? next.slice(next.length - MAX_EVENTS) : next;
+    });
+  }, []);
 
   const setErrorState = useCallback((updates: Partial<ErrorState>) => {
     setErrors((current) => ({ ...current, ...updates }));
@@ -144,7 +163,8 @@ export function ChatKitPanel({
     setIsInitializingSession(true);
     setErrors(createInitialErrors());
     setWidgetInstanceKey((prev) => prev + 1);
-  }, []);
+    resetToolEvents();
+  }, [resetToolEvents]);
 
   const getClientSecret = useCallback(
     async (currentSecret: string | null) => {
@@ -177,8 +197,7 @@ export function ChatKitPanel({
           body: JSON.stringify({
             workflow: { id: WORKFLOW_ID },
             chatkit_configuration: {
-              // enable attachments
-              file_upload: { enabled: true },
+              file_upload: { enabled: true }, // enable attachments
             },
           }),
         });
@@ -304,11 +323,83 @@ export function ChatKitPanel({
     },
     onThreadChange: () => {
       processedFacts.current.clear();
+      resetToolEvents();
     },
     onError: ({ error }: { error: unknown }) => {
       console.error("ChatKit error", error);
     },
   });
+
+  useEffect(() => {
+    if (!control) return;
+
+    const handleLog = (event: Event) => {
+      const detail = (event as CustomEvent<ChatKitLogDetail>).detail;
+      if (!detail) return;
+      appendToolEvent(createToolTraceEvent(detail));
+    };
+
+    const handleError = (event: Event) => {
+      const detail = (event as CustomEvent<{ error: Error }>).detail;
+      appendToolEvent({
+        id: createTraceId(),
+        timestamp: Date.now(),
+        name: "chatkit.error",
+        summary: detail?.error?.message ?? "ChatKit error",
+        status: "error",
+        payload: detail?.error
+          ? {
+              message: detail.error.message,
+              stack: detail.error.stack ?? null,
+            }
+          : undefined,
+      });
+    };
+
+    const handleResponseStart = () => {
+      appendToolEvent({
+        id: createTraceId(),
+        timestamp: Date.now(),
+        name: "chatkit.response.start",
+        summary: "Assistant response started",
+        status: "info",
+      });
+    };
+
+    const handleResponseEnd = () => {
+      appendToolEvent({
+        id: createTraceId(),
+        timestamp: Date.now(),
+        name: "chatkit.response.end",
+        summary: "Assistant response completed",
+        status: "success",
+      });
+    };
+
+    control.addEventListener("chatkit.log", handleLog as EventListener);
+    control.addEventListener("chatkit.error", handleError as EventListener);
+    control.addEventListener(
+      "chatkit.response.start",
+      handleResponseStart as EventListener
+    );
+    control.addEventListener(
+      "chatkit.response.end",
+      handleResponseEnd as EventListener
+    );
+
+    return () => {
+      control.removeEventListener("chatkit.log", handleLog as EventListener);
+      control.removeEventListener("chatkit.error", handleError as EventListener);
+      control.removeEventListener(
+        "chatkit.response.start",
+        handleResponseStart as EventListener
+      );
+      control.removeEventListener(
+        "chatkit.response.end",
+        handleResponseEnd as EventListener
+      );
+    };
+  }, [control, appendToolEvent]);
 
   const handleInsertPrompt = useCallback(
     async (text: string) => {
@@ -335,30 +426,37 @@ export function ChatKitPanel({
   }
 
   return (
-    <div className="flex h-[90vh] w-full gap-4">
+    <div className="flex h-[90vh] w-full flex-col gap-4 lg:flex-row">
       <PromptSidebar
-        className="hidden w-72 shrink-0 lg:block"
+        className="w-72 shrink-0"
         onInsert={handleInsertPrompt}
       />
-      <div className="relative pb-8 flex flex-1 rounded-2xl flex-col overflow-hidden bg-white shadow-xl transition-colors">
-        <ChatKit
-          key={widgetInstanceKey}
-          control={control}
-          className={
-            blockingError || isInitializingSession
-              ? "pointer-events-none opacity-0"
-              : "block h-full w-full"
-          }
-        />
-        <ErrorOverlay
-          error={blockingError}
-          fallbackMessage={
-            blockingError || !isInitializingSession
-              ? null
-              : "Loading assistant session..."
-          }
-          onRetry={blockingError && errors.retryable ? handleResetChat : null}
-          retryLabel="Restart chat"
+      <div className="flex flex-1 gap-4">
+        <div className="relative pb-8 flex flex-1 rounded-2xl flex-col overflow-hidden bg-white shadow-xl transition-colors">
+          <ChatKit
+            key={widgetInstanceKey}
+            control={control}
+            className={
+              blockingError || isInitializingSession
+                ? "pointer-events-none opacity-0"
+                : "block h-full w-full"
+            }
+          />
+          <ErrorOverlay
+            error={blockingError}
+            fallbackMessage={
+              blockingError || !isInitializingSession
+                ? null
+                : "Loading assistant session..."
+            }
+            onRetry={blockingError && errors.retryable ? handleResetChat : null}
+            retryLabel="Restart chat"
+          />
+        </div>
+        <ToolTracePanel
+          className="hidden w-80 shrink-0 lg:block"
+          events={toolEvents}
+          onClear={resetToolEvents}
         />
       </div>
     </div>
@@ -402,4 +500,99 @@ function extractErrorDetail(
   if (typeof payload.message === "string") return payload.message;
 
   return fallback;
+}
+
+function createToolTraceEvent(detail: ChatKitLogDetail): ToolTraceEvent {
+  const payload =
+    detail.data && Object.keys(detail.data).length > 0 ? detail.data : undefined;
+  const toolName = extractString(detail.data, [
+    "tool",
+    "tool_name",
+    "toolName",
+    "function",
+    "name",
+  ]);
+  const phase = extractString(detail.data, [
+    "phase",
+    "status",
+    "stage",
+    "event",
+  ]);
+  const summaryParts = [
+    toolName,
+    phase ?? inferPhaseFromName(detail.name),
+  ].filter(Boolean);
+  const summary =
+    summaryParts.length > 0
+      ? summaryParts.join(" • ")
+      : detail.name.replace(/^chatkit\./, "");
+
+  return {
+    id: createTraceId(),
+    timestamp: Date.now(),
+    name: detail.name,
+    summary,
+    status: inferStatus(detail.name, detail.data),
+    payload,
+  };
+}
+
+function inferPhaseFromName(name: string): string | undefined {
+  if (name.endsWith(".start")) return "start";
+  if (name.endsWith(".end")) return "end";
+  return undefined;
+}
+
+function inferStatus(
+  name: string,
+  data?: Record<string, unknown>
+): ToolTraceEvent["status"] {
+  const hint = extractString(data, ["status", "phase", "state"]);
+  if (hint) {
+    const lower = hint.toLowerCase();
+    if (["success", "ok", "completed", "done"].includes(lower)) return "success";
+    if (["error", "failed", "fail"].includes(lower)) return "error";
+    if (["start", "pending", "calling"].includes(lower)) return "pending";
+  }
+  const normalized = name.toLowerCase();
+  if (
+    normalized.includes("error") ||
+    normalized.includes("fail") ||
+    normalized.includes("exception")
+  ) {
+    return "error";
+  }
+  if (
+    normalized.includes("result") ||
+    normalized.includes("success") ||
+    normalized.includes("complete") ||
+    normalized.endsWith(".end")
+  ) {
+    return "success";
+  }
+  if (normalized.includes("start") || normalized.includes("call")) {
+    return "pending";
+  }
+  return "info";
+}
+
+function extractString(
+  data: Record<string, unknown> | undefined,
+  keys: string[]
+): string | undefined {
+  if (!data) return undefined;
+  for (const key of keys) {
+    const value = data[key];
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function createTraceId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2);
 }
