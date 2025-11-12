@@ -22,7 +22,7 @@ export type FactAction = {
 type ChatKitPanelProps = {
   theme: ColorScheme;
   onWidgetAction: (action: FactAction) => Promise<void>;
-  onResponseEnd: () => void;
+  onResponseEnd: (sessionId?: string) => void;
   onThemeRequest: (scheme: ColorScheme) => void;
 };
 
@@ -61,6 +61,7 @@ export function ChatKitPanel({
       : "pending"
   );
   const [widgetInstanceKey, setWidgetInstanceKey] = useState(0);
+  const sessionIdRef = useRef<string | null>(null);
 
   const setErrorState = useCallback((updates: Partial<ErrorState>) => {
     setErrors((current) => ({ ...current, ...updates }));
@@ -237,6 +238,12 @@ export function ChatKitPanel({
           throw new Error("Missing client secret in response");
         }
 
+        // Capture session_id for tracking
+        const sessionId = data?.session_id as string | undefined;
+        if (sessionId) {
+          sessionIdRef.current = sessionId;
+        }
+
         if (isMountedRef.current) {
           setErrorState({ session: null, integration: null });
         }
@@ -316,7 +323,7 @@ export function ChatKitPanel({
       return { success: false };
     },
     onResponseEnd: () => {
-      onResponseEnd();
+      onResponseEnd(sessionIdRef.current ?? undefined);
     },
     onResponseStart: () => {
       setErrorState({ integration: null, retryable: false });

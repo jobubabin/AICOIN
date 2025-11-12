@@ -113,9 +113,14 @@ export async function POST(request: Request): Promise<Response> {
 
     const clientSecret = upstreamJson?.client_secret ?? null;
     const expiresAfter = upstreamJson?.expires_after ?? null;
+
+    // Session ID for tracking (use userId)
+    const sessionId = userId;
+
     const responsePayload = {
       client_secret: clientSecret,
       expires_after: expiresAfter,
+      session_id: sessionId,
     };
 
     return buildJsonResponse(
