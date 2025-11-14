@@ -19,7 +19,7 @@ export type FactAction = {
   factText: string;
 };
 
-type ChatKitPanelProps = {
+type ChatKitWidgetProps = {
   theme: ColorScheme;
   onWidgetAction: (action: FactAction) => Promise<void>;
   onResponseEnd: () => void;
@@ -43,12 +43,12 @@ const createInitialErrors = (): ErrorState => ({
   retryable: false,
 });
 
-export function ChatKitPanel({
+export function ChatKitWidget({
   theme,
   onWidgetAction,
   onResponseEnd,
   onThemeRequest,
-}: ChatKitPanelProps) {
+}: ChatKitWidgetProps) {
   const processedFacts = useRef(new Set<string>());
   const [errors, setErrors] = useState<ErrorState>(() => createInitialErrors());
   const [isInitializingSession, setIsInitializingSession] = useState(true);
@@ -160,7 +160,7 @@ export function ChatKitPanel({
   const getClientSecret = useCallback(
     async (currentSecret: string | null) => {
       if (isDev) {
-        console.info("[ChatKitPanel] getClientSecret invoked", {
+        console.info("[ChatKitWidget] getClientSecret invoked", {
           currentSecretPresent: Boolean(currentSecret),
           workflowId: WORKFLOW_ID,
           endpoint: CREATE_SESSION_ENDPOINT,
@@ -204,7 +204,7 @@ export function ChatKitPanel({
         const raw = await response.text();
 
         if (isDev) {
-          console.info("[ChatKitPanel] createSession response", {
+          console.info("[ChatKitWidget] createSession response", {
             status: response.status,
             ok: response.ok,
             bodyPreview: raw.slice(0, 1600),
@@ -289,7 +289,7 @@ export function ChatKitPanel({
         const requested = invocation.params.theme;
         if (requested === "light" || requested === "dark") {
           if (isDev) {
-            console.debug("[ChatKitPanel] switch_theme", requested);
+            console.debug("[ChatKitWidget] switch_theme", requested);
           }
           onThemeRequest(requested);
           return { success: true };
@@ -334,7 +334,7 @@ export function ChatKitPanel({
   const blockingError = errors.script ?? activeError;
 
   if (isDev) {
-    console.debug("[ChatKitPanel] render state", {
+    console.debug("[ChatKitWidget] render state", {
       isInitializingSession,
       hasControl: Boolean(chatkit.control),
       scriptStatus,
@@ -344,7 +344,7 @@ export function ChatKitPanel({
   }
 
   return (
-    <div className="relative pb-8 flex h-[90vh] w-full rounded-2xl flex-col overflow-hidden bg-white shadow-sm transition-colors dark:bg-slate-900">
+    <div className="relative pb-4 flex h-[400px] w-[350px] rounded-lg flex-col overflow-hidden bg-white shadow-sm transition-colors dark:bg-slate-900">
       <ChatKit
         key={widgetInstanceKey}
         control={chatkit.control}
