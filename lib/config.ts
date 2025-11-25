@@ -15,7 +15,7 @@ export const STARTER_PROMPTS: StartScreenPrompt[] = [
 
 export const PLACEHOLDER_INPUT = "Ask anything...";
 
-export const GREETING = "How can I help you today?";
+export const GREETING = "Hi!";
 
 export const getThemeConfig = (theme: ColorScheme): ThemeOption => ({
   color: {
