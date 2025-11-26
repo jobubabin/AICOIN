@@ -274,9 +274,18 @@ export function ChatKitPanel({
     composer: {
       placeholder: PLACEHOLDER_INPUT,
       attachments: {
-        // Enable attachments
         enabled: true,
+        maxCount: 5,
+        maxSize: 10485760,
       },
+      models: [
+        {
+          id: "crisp",
+          label: "Crisp",
+          description: "Concise and factual",
+        },
+        // ...and 2 more models
+      ],
     },
     threadItemActions: {
       feedback: false,
