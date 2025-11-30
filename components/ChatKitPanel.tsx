@@ -33,6 +33,16 @@ type ErrorState = {
   retryable: boolean;
 };
 
+type ExerciseWidgetState = {
+  exerciseId?: string;
+};
+
+type ExerciseWidgetItem = {
+  id?: string;
+  state?: ExerciseWidgetState;
+};
+
+
 const isBrowser = typeof window !== "undefined";
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -354,13 +364,14 @@ export function ChatKitPanel({
 
 
     
-
 widgets: {
-  onAction: async (action, item) => {
+  onAction: async (
+    action: { type: string; payload?: unknown },
+    item?: ExerciseWidgetItem
+  ) => {
     console.log("Widget action fired:", action, item);
 
-    const widgetState = (item?.state ?? {}) as any;
-    const exerciseId = widgetState.exerciseId as string | undefined;
+    const exerciseId = item?.state?.exerciseId;
 
     if (action.type === "exercise.details") {
       // User clicked "Get instructions"
@@ -383,6 +394,7 @@ widgets: {
     }
   },
 },
+
 
     
 
