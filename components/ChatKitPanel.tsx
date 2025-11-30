@@ -1,4 +1,5 @@
 "use client";
+/* comment for testing */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChatKit, useChatKit } from "@openai/chatkit-react";
