@@ -3,8 +3,21 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AgentKit demo",
-  description: "Demo of ChatKit with hosted workflow",
+  title: "Shape-Mate",
+  description: "Dog shaping trainer",
+  manifest: "/manifest.json",
+  themeColor: "#0d1117",
+
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+
+  appleWebApp: {
+    capable: true,
+    title: "Shape-Mate",
+    statusBarStyle: "black-translucent",
+  }
 };
 
 export default function RootLayout({
