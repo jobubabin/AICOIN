@@ -1,12 +1,12 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...(config.resolve.alias ?? {}),
-    };
-    return config;
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "ecole-eft-france.fr" },
+      { protocol: "https", hostname: "www.ecole-eft-france.fr" },
+    ],
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
+
