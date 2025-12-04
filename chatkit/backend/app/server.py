@@ -17,7 +17,6 @@ from chatkit.types import (
     ThreadStreamEvent,
     UserMessageItem,
 )
-from openai.types.responses import ResponseInputContentParam
 
 from .assistant import StarterAgentContext, assistant_agent
 from .memory_store import MemoryStore
@@ -83,9 +82,6 @@ class StarterChatServer(ChatKitServer[dict[str, Any]]):
     ) -> StreamOptions:
         # Allow cancelling mid-stream; the in-memory store will keep partial history.
         return StreamOptions(allow_cancel=True)
-
-    async def to_message_content(self, _input: Attachment) -> ResponseInputContentParam:
-        raise RuntimeError("File attachments are not supported in this demo.")
 
 
 def create_chatkit_server() -> StarterChatServer | None:
