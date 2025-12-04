@@ -1,4 +1,4 @@
-# OpenAI ChatKit Starter Apps
+# OpenAI ChatKit Starter Templates
 
 This repository contains two starter apps as reference implementations of minimal ChatKit integrations.
 
