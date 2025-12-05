@@ -1,5 +1,3 @@
-import { WORKFLOW_ID } from "@/lib/config";
-
 export const runtime = "edge";
 
 interface CreateSessionRequestBody {
@@ -41,7 +39,7 @@ export async function POST(request: Request): Promise<Response> {
       await resolveUserId(request);
     sessionCookie = resolvedSessionCookie;
     const resolvedWorkflowId =
-      parsedBody?.workflow?.id ?? parsedBody?.workflowId ?? WORKFLOW_ID;
+      parsedBody?.workflow?.id ?? parsedBody?.workflowId;
 
     if (process.env.NODE_ENV !== "production") {
       console.info("[create-session] handling request", {
