@@ -5,10 +5,33 @@ export const WORKFLOW_ID =
 
 export const CREATE_SESSION_ENDPOINT = "/api/create-session";
 
+// export const STARTER_PROMPTS: StartScreenPrompt[] = [
+//   {
+//     label: "What can you do?",
+//     prompt: "What can you do?",
+//     icon: "circle-question",
+//   },
+// ];
+
 export const STARTER_PROMPTS: StartScreenPrompt[] = [
   {
     label: "What can you do?",
     prompt: "What can you do?",
+    icon: "circle-question",
+  },
+  {
+    label: "Help me start",
+    prompt: "Help me start my statement.",
+    icon: "circle-question",
+  },
+  {
+    label: "Edit my statement",
+    prompt: "Edit a statement I started for clarity, tone, and structure.",
+    icon: "circle-question",
+  },
+  {
+    label: "Finish my statement",
+    prompt: "Help me finish and polish the ending of a statement I started.",
     icon: "circle-question",
   },
 ];
