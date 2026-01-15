@@ -43,6 +43,23 @@ const createInitialErrors = (): ErrorState => ({
   retryable: false,
 });
 
+// NEW: pull Qualtrics / Prolific IDs from URL and format a user string
+function getUserIdFromUrl() {
+  if (typeof window === "undefined") return undefined;
+
+  const params = new URLSearchParams(window.location.search);
+
+  const qualtricsId = params.get("qualtrics_id") || "";
+  const prolificId = params.get("prolific_id") || "";
+
+  if (!qualtricsId && !prolificId) {
+    return undefined;
+  }
+
+  // This is what will show up as "User" in ChatKit threads
+  return `qualtrics:${qualtricsId || "NA"};prolific:${prolificId || "NA"}`;
+}
+
 export function ChatKitPanel({
   theme,
   onWidgetAction,
@@ -185,20 +202,29 @@ export function ChatKitPanel({
       }
 
       try {
+        // NEW: build payload and inject user ID if present
+        const bodyUserId = getUserIdFromUrl();
+
+        const payload: Record<string, unknown> = {
+          workflow: { id: WORKFLOW_ID },
+          chatkit_configuration: {
+            // enable attachments
+            file_upload: {
+              enabled: true,
+            },
+          },
+        };
+
+        if (bodyUserId) {
+          (payload as any).user = bodyUserId;
+        }
+
         const response = await fetch(CREATE_SESSION_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            workflow: { id: WORKFLOW_ID },
-            chatkit_configuration: {
-              // enable attachments
-              file_upload: {
-                enabled: true,
-              },
-            },
-          }),
+          body: JSON.stringify(payload),
         });
 
         const raw = await response.text();
