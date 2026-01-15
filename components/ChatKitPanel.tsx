@@ -201,25 +201,30 @@ export function ChatKitPanel({
         }
         setErrorState({ session: null, integration: null, retryable: false });
       }
-
-      try {
+      
+       try {
         const bodyUserId = getUserIdFromUrl();
         const response = await fetch(CREATE_SESSION_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-                body: JSON.stringify({
-          workflow: { id: WORKFLOW_ID },
-          ...(bodyUserId ? { scope: { user_id: bodyUserId } } : {}),
-          chatkit_configuration: {
-            file_upload: {
-              enabled: true,
-              max_file_size: 20,
-              max_files: 3,
+          body: JSON.stringify({
+            workflow: { id: WORKFLOW_ID },
+            ...(bodyUserId ? { user: bodyUserId } : {}),
+            chatkit_configuration: {
+              file_upload: {
+                enabled: true,
+                max_file_size: 20,
+                max_files: 3,
+              },
             },
-          },
-        }),
+          }),
+        });
+
+        const raw = await response.text();
+
+        const raw = await response.text();
 
         const raw = await response.text();
 
