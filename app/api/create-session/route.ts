@@ -36,7 +36,6 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const parsedBody = await safeParseJson<CreateSessionRequestBody>(request);
-
     const resolvedWorkflowId =
       parsedBody?.workflow?.id ?? parsedBody?.workflowId ?? WORKFLOW_ID;
 
@@ -50,10 +49,26 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // Minimal required payload for ChatKit: workflow + user
+    // --- NEW: build user from Referer (uid + prolific) ---
+    let user = "anonymous-user";
+
+    const referer = request.headers.get("referer") || "";
+    try {
+      const url = new URL(referer);
+      const uid = url.searchParams.get("uid") || "";
+      const prolific = url.searchParams.get("prolific") || "";
+
+      if (uid || prolific) {
+        user = `uid:${uid || "NA"};prolific:${prolific || "NA"}`;
+      }
+    } catch {
+      // if Referer is missing or malformed, keep user = "anonymous-user"
+    }
+    // --- END NEW ---
+
     const payload: Record<string, unknown> = {
+      user, // required by ChatKit
       workflow: { id: resolvedWorkflowId },
-      user: "anonymous-user", // <-- satisfies the required `user` field
       chatkit_configuration: {
         file_upload: {
           enabled:
