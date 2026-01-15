@@ -211,6 +211,7 @@ export function ChatKitPanel({
           },
           body: JSON.stringify({
             workflow: { id: WORKFLOW_ID },
+            // send user, not scope.user_id
             ...(bodyUserId ? { user: bodyUserId } : {}),
             chatkit_configuration: {
               file_upload: {
@@ -224,9 +225,7 @@ export function ChatKitPanel({
 
         const raw = await response.text();
 
-        const raw = await response.text();
-
-        const raw = await response.text();
+       
 
         if (isDev) {
           console.info("[ChatKitPanel] createSession response", {
