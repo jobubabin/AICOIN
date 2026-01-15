@@ -43,23 +43,6 @@ const createInitialErrors = (): ErrorState => ({
   retryable: false,
 });
 
-// NEW: build user ID from Qualtrics/Prolific query params
-function getUserIdFromUrl() {
-  if (typeof window === "undefined") return undefined;
-
-  const params = new URLSearchParams(window.location.search);
-
-  const qualtricsId = params.get("qualtrics_id") || "";
-  const prolificId = params.get("prolific_id") || "";
-
-  if (!qualtricsId && !prolificId) {
-    return undefined;
-  }
-
-  // This string will appear as "User" in ChatKit threads
-  return `qualtrics:${qualtricsId || "NA"};prolific:${prolificId || "NA"}`;
-}
-
 export function ChatKitPanel({
   theme,
   onWidgetAction,
@@ -170,13 +153,9 @@ export function ChatKitPanel({
       );
     }
     setIsInitializingSession(true);
-    resetErrors();
+    setErrors(createInitialErrors());
     setWidgetInstanceKey((prev) => prev + 1);
   }, []);
-
-  const resetErrors = () => {
-    setErrors(createInitialErrors());
-  };
 
   const getClientSecret = useCallback(
     async (currentSecret: string | null) => {
@@ -206,29 +185,20 @@ export function ChatKitPanel({
       }
 
       try {
-        const bodyUserId = getUserIdFromUrl();
-
-        // Build payload exactly once, then JSON.stringify it
-        const payload: Record<string, unknown> = {
-          workflow: { id: WORKFLOW_ID },
-          chatkit_configuration: {
-            // enable attachments
-            file_upload: {
-              enabled: true,
-            },
-          },
-        };
-
-        if (bodyUserId) {
-          (payload as any).user = bodyUserId;
-        }
-
         const response = await fetch(CREATE_SESSION_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            workflow: { id: WORKFLOW_ID },
+            chatkit_configuration: {
+              // enable attachments
+              file_upload: {
+                enabled: true,
+              },
+            },
+          }),
         });
 
         const raw = await response.text();
@@ -354,6 +324,8 @@ export function ChatKitPanel({
       processedFacts.current.clear();
     },
     onError: ({ error }: { error: unknown }) => {
+      // Note that Chatkit UI handles errors for your users.
+      // Thus, your app code doesn't need to display errors on UI.
       console.error("ChatKit error", error);
     },
   });
