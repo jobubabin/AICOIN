@@ -43,7 +43,7 @@ const createInitialErrors = (): ErrorState => ({
   retryable: false,
 });
 
-// NEW: pull Qualtrics / Prolific IDs from URL and format a user string
+// NEW: build user ID from Qualtrics/Prolific query params
 function getUserIdFromUrl() {
   if (typeof window === "undefined") return undefined;
 
@@ -56,7 +56,7 @@ function getUserIdFromUrl() {
     return undefined;
   }
 
-  // This is what will show up as "User" in ChatKit threads
+  // This string will appear as "User" in ChatKit threads
   return `qualtrics:${qualtricsId || "NA"};prolific:${prolificId || "NA"}`;
 }
 
@@ -170,9 +170,13 @@ export function ChatKitPanel({
       );
     }
     setIsInitializingSession(true);
-    setErrors(createInitialErrors());
+    resetErrors();
     setWidgetInstanceKey((prev) => prev + 1);
   }, []);
+
+  const resetErrors = () => {
+    setErrors(createInitialErrors());
+  };
 
   const getClientSecret = useCallback(
     async (currentSecret: string | null) => {
@@ -202,9 +206,9 @@ export function ChatKitPanel({
       }
 
       try {
-        // NEW: build payload and inject user ID if present
         const bodyUserId = getUserIdFromUrl();
 
+        // Build payload exactly once, then JSON.stringify it
         const payload: Record<string, unknown> = {
           workflow: { id: WORKFLOW_ID },
           chatkit_configuration: {
@@ -350,8 +354,6 @@ export function ChatKitPanel({
       processedFacts.current.clear();
     },
     onError: ({ error }: { error: unknown }) => {
-      // Note that Chatkit UI handles errors for your users.
-      // Thus, your app code doesn't need to display errors on UI.
       console.error("ChatKit error", error);
     },
   });
