@@ -3,37 +3,28 @@ import { ColorScheme, StartScreenPrompt, ThemeOption } from "@openai/chatkit";
 export const WORKFLOW_ID =
   process.env.NEXT_PUBLIC_CHATKIT_WORKFLOW_ID?.trim() ?? "";
 
- export const CREATE_SESSION_ENDPOINT =
-  process.env.NEXT_PUBLIC_CHATKIT_SESSION_ENDPOINT ?? "/api/create-session";
-
-// export const STARTER_PROMPTS: StartScreenPrompt[] = [
-//   {
-//     label: "What can you do?",
-//     prompt: "What can you do?",
-//     icon: "circle-question",
-//   },
-// ];
+export const CREATE_SESSION_ENDPOINT = "/api/create-session";
 
 export const STARTER_PROMPTS: StartScreenPrompt[] = [
   {
-    label: "What can you do?",
-    prompt: "What can you do?",
-    icon: "circle-question",
+    label: "Tell me all in-process opportunities for Sanofi (with probability ≥50%).",
+    prompt: "Tell me all in-process opportunities for Sanofi (with probability ≥50%).",
   },
   {
-    label: "Help me start",
-    prompt: "Help me start my statement.",
-    icon: "circle-question",
+    label: "Show all account running clinical trials for cystic fibrosis",
+    prompt: "Show all account running clinical trials for cystic fibrosis",
   },
   {
-    label: "Edit my statement",
-    prompt: "Edit a statement I started for clarity, tone, and structure.",
-    icon: "circle-question",
+    label: "Show me the clinical trials Clario is running",
+    prompt: "Show me the clinical trials Clario is running",
   },
   {
-    label: "Finish my statement",
-    prompt: "Help me finish and polish the ending of a statement I started.",
-    icon: "circle-question",
+    label: "Show me the competitive CROs running trials for Takeda",
+    prompt: "Show me the competitive CROs running trials for Takeda",
+  },
+  {
+    label: "Show me all my colleagues for Pfizer in the UK",
+    prompt: "Show me all my colleagues for Pfizer in the UK",
   },
 ];
 
