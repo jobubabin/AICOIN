@@ -1,5 +1,3 @@
-/* eslint-disable */
-// @ts-nocheck
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -14,22 +12,6 @@ import {
 } from "@/lib/config";
 import { ErrorOverlay } from "./ErrorOverlay";
 import type { ColorScheme } from "@/hooks/useColorScheme";
-
-function getUserIdFromUrl() {
-  if (typeof window === "undefined") return undefined;
-
-  const params = new URLSearchParams(window.location.search);
-
-  const qualtricsId = params.get("qualtrics_id") || "";
-  const prolificId = params.get("prolific_id") || "";
-
-  if (!qualtricsId && !prolificId) {
-    return undefined;
-  }
-
-  // This is what will show up as "User" in ChatKit threads
-  return `qualtrics:${qualtricsId || "NA"};prolific:${prolificId || "NA"}`;
-}
 
 export type FactAction = {
   type: "save";
@@ -203,8 +185,6 @@ export function ChatKitPanel({
       }
 
       try {
-        const bodyUserId = getUserIdFromUrl();
-
         const response = await fetch(CREATE_SESSION_ENDPOINT, {
           method: "POST",
           headers: {
@@ -212,17 +192,14 @@ export function ChatKitPanel({
           },
           body: JSON.stringify({
             workflow: { id: WORKFLOW_ID },
-            // send user, not scope.user_id
-            ...(bodyUserId ? { user: bodyUserId } : {}),
             chatkit_configuration: {
+              // enable attachments
               file_upload: {
                 enabled: true,
-                max_file_size: 20,
-                max_files: 3,
               },
             },
           }),
-        }); // <-- this line is critical: closes fetch(..., { ... })
+        });
 
         const raw = await response.text();
 
