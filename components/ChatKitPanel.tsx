@@ -13,6 +13,22 @@ import {
 import { ErrorOverlay } from "./ErrorOverlay";
 import type { ColorScheme } from "@/hooks/useColorScheme";
 
+function getUserIdFromUrl() {
+  if (typeof window === "undefined") return undefined;
+
+  const params = new URLSearchParams(window.location.search);
+
+  const qualtricsId = params.get("qualtrics_id") || "";
+  const prolificId = params.get("prolific_id") || "";
+
+  if (!qualtricsId && !prolificId) {
+    return undefined;
+  }
+
+  // Put both into a single string for the ChatKit session user field
+  return `qualtrics:${qualtricsId || "NA"};prolific:${prolificId || "NA"}`;
+}
+
 export type FactAction = {
   type: "save";
   factId: string;
@@ -185,21 +201,23 @@ export function ChatKitPanel({
       }
 
       try {
+        const bodyUserId = getUserIdFromUrl();
         const response = await fetch(CREATE_SESSION_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            workflow: { id: WORKFLOW_ID },
-            chatkit_configuration: {
-              // enable attachments
-              file_upload: {
-                enabled: true,
-              },
-            },
-          }),
-        });
+        body: JSON.stringify({
+  workflow: { id: WORKFLOW_ID },
+  ...(bodyUserId ? { scope: { user_id: bodyUserId } } : {}),
+  chatkit_configuration: {
+    file_upload: {
+      enabled: true,
+      max_file_size: 20,
+      max_files: 3,
+    },
+  },
+}),
 
         const raw = await response.text();
 
