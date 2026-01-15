@@ -209,17 +209,17 @@ export function ChatKitPanel({
           headers: {
             "Content-Type": "application/json",
           },
-        body: JSON.stringify({
-  workflow: { id: WORKFLOW_ID },
-  ...(bodyUserId ? { scope: { user_id: bodyUserId } } : {}),
-  chatkit_configuration: {
-    file_upload: {
-      enabled: true,
-      max_file_size: 20,
-      max_files: 3,
-    },
-  },
-}),
+                body: JSON.stringify({
+          workflow: { id: WORKFLOW_ID },
+          ...(bodyUserId ? { scope: { user_id: bodyUserId } } : {}),
+          chatkit_configuration: {
+            file_upload: {
+              enabled: true,
+              max_file_size: 20,
+              max_files: 3,
+            },
+          },
+        }),
 
         const raw = await response.text();
 
