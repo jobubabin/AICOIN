@@ -25,7 +25,7 @@ function getUserIdFromUrl() {
     return undefined;
   }
 
-  // Put both into a single string for the ChatKit session user field
+  // This is what will show up as "User" in ChatKit threads
   return `qualtrics:${qualtricsId || "NA"};prolific:${prolificId || "NA"}`;
 }
 
