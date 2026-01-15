@@ -7,11 +7,11 @@ interface CreateSessionRequestBody {
   scope?: { user_id?: string | null } | null;
   workflowId?: string | null;
   user?: string | null;
-  chatkit_configuration?: Record<string, unknown>; {
+  chatkit_configuration?: {
     file_upload?: {
       enabled?: boolean;
     };
-  };
+  } | null;
 }
 
 const DEFAULT_CHATKIT_BASE = "https://api.openai.com";
