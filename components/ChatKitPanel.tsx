@@ -175,7 +175,7 @@ export function ChatKitPanel({
     setWidgetInstanceKey((prev) => prev + 1);
   }, []);
 
-  const getClientSecret = useCallback(
+    const getClientSecret = useCallback(
     async (currentSecret: string | null) => {
       if (isDev) {
         console.info("[ChatKitPanel] getClientSecret invoked", {
@@ -201,9 +201,10 @@ export function ChatKitPanel({
         }
         setErrorState({ session: null, integration: null, retryable: false });
       }
-      
-       try {
+
+      try {
         const bodyUserId = getUserIdFromUrl();
+
         const response = await fetch(CREATE_SESSION_ENDPOINT, {
           method: "POST",
           headers: {
@@ -225,6 +226,63 @@ export function ChatKitPanel({
 
         const raw = await response.text();
 
+        if (isDev) {
+          console.info("[ChatKitPanel] createSession response", {
+            status: response.status,
+            ok: response.ok,
+            bodyPreview: raw.slice(0, 1600),
+          });
+        }
+
+        let data: Record<string, unknown> = {};
+        if (raw) {
+          try {
+            data = JSON.parse(raw) as Record<string, unknown>;
+          } catch (parseError) {
+            console.error(
+              "Failed to parse create-session response",
+              parseError
+            );
+          }
+        }
+
+        if (!response.ok) {
+          const detail = extractErrorDetail(data, response.statusText);
+          console.error("Create session request failed", {
+            status: response.status,
+            body: data,
+          });
+          throw new Error(detail);
+        }
+
+        const clientSecret = data?.client_secret as string | undefined;
+        if (!clientSecret) {
+          throw new Error("Missing client secret in response");
+        }
+
+        if (isMountedRef.current) {
+          setErrorState({ session: null, integration: null });
+        }
+
+        return clientSecret;
+      } catch (error) {
+        console.error("Failed to create ChatKit session", error);
+        const detail =
+          error instanceof Error
+            ? error.message
+            : "Unable to start ChatKit session.";
+        if (isMountedRef.current) {
+          setErrorState({ session: detail, retryable: false });
+        }
+        throw error instanceof Error ? error : new Error(detail);
+      } finally {
+        if (isMountedRef.current && !currentSecret) {
+          setIsInitializingSession(false);
+        }
+      }
+    },
+    [isWorkflowConfigured, setErrorState]
+  );
        
 
         if (isDev) {
