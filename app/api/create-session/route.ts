@@ -6,7 +6,7 @@ interface CreateSessionRequestBody {
   workflow?: { id?: string | null } | null;
   scope?: { user_id?: string | null } | null;
   workflowId?: string | null;
-  chatkit_configuration?: {
+  chatkit_configuration?: Record<string, unknown>; {
     file_upload?: {
       enabled?: boolean;
     };
@@ -40,9 +40,13 @@ export async function POST(request: Request): Promise<Response> {
     const { userId, sessionCookie: resolvedSessionCookie } =
       await resolveUserId(request);
     sessionCookie = resolvedSessionCookie;
+    
+    const scopedUserId = parsedBody?.scope?.user_id || userId;
+
     const resolvedWorkflowId =
       parsedBody?.workflow?.id ?? parsedBody?.workflowId ?? WORKFLOW_ID;
-
+    const chatkitConfiguration = parsedBody?.chatkit_configuration; 
+    
     if (process.env.NODE_ENV !== "production") {
       console.info("[create-session] handling request", {
         resolvedWorkflowId,
@@ -70,7 +74,7 @@ export async function POST(request: Request): Promise<Response> {
       },
       body: JSON.stringify({
         workflow: { id: resolvedWorkflowId },
-        user: userId,
+        user: scopedUserId,
         chatkit_configuration: {
           file_upload: {
             enabled:
