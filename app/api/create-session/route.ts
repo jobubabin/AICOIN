@@ -50,6 +50,18 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    // Minimal required payload for ChatKit: workflow + user
+    const payload: Record<string, unknown> = {
+      workflow: { id: resolvedWorkflowId },
+      user: "anonymous-user", // <-- satisfies the required `user` field
+      chatkit_configuration: {
+        file_upload: {
+          enabled:
+            parsedBody?.chatkit_configuration?.file_upload?.enabled ?? false,
+        },
+      },
+    };
+
     const apiBase = process.env.CHATKIT_API_BASE ?? DEFAULT_CHATKIT_BASE;
     const upstreamResponse = await fetch(
       `${apiBase}/v1/chatkit/sessions`,
@@ -60,16 +72,7 @@ export async function POST(request: Request): Promise<Response> {
           Authorization: `Bearer ${openaiApiKey}`,
           "OpenAI-Beta": "chatkit_beta=v1",
         },
-        body: JSON.stringify({
-          workflow: { id: resolvedWorkflowId },
-          chatkit_configuration: {
-            file_upload: {
-              enabled:
-                parsedBody?.chatkit_configuration?.file_upload?.enabled ??
-                false,
-            },
-          },
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
