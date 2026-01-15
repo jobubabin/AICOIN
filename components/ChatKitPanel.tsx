@@ -222,7 +222,7 @@ export function ChatKitPanel({
               },
             },
           }),
-        });
+        }); // <-- this line is critical: closes fetch(..., { ... })
 
         const raw = await response.text();
 
